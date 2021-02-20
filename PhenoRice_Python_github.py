@@ -2,23 +2,23 @@
 """
 Created on Fri Sep 18 21:00:57 2020
 # This script aims at converting the PhenoRice program from R to Python
+# It uses gap filled LST and EVI 
 @author: Nirajan Luintel
 """
 #%%
 # import the required libraries
 import numpy as np
-#import pandas as pd
-#import matplotlib.pyplot as plt
 from netCDF4 import Dataset
 from osgeo import gdal
 import glob
 import os
 
 #%%
-
+# Read the data, DEM and Slope data exclude those areas which are unlikely to have rice
 demfile = '/media/gdrive/G-Drive/SRTM_DEM_sinusoidal/SRTM_DEM_Mosaicked_sinusoidal_clipped_resampled.tif';
 slopefile ='/media/gdrive/G-Drive/SRTM_DEM_sinusoidal/SRTM_DEM_Mosaicked_sinusoidal_clipped_resampled_slope.tif';
 
+#The example is for the year 2018 in the area of Nepal
 lstfile ='/media/gdrive/G-Drive/MATLAB_files/modis_EVIdata_20190520/PhenoRice_input_ncfiles/1.MOD_11A2_LST_250m_2018_20190626.nc'
 ndfifile ='/media/ddrive/PhenoRice_data/MODIS_13Q1_2018_NDFI_20200612.nc';
 evifile = '/media/gdrive/G-Drive/MATLAB_files/modis_EVIdata_20190520/PhenoRice_input_ncfiles/4.MODIS_13Q1_EVI_filled_2018_20200616.nc'
@@ -286,7 +286,6 @@ for ii in tqdm(range(xx)):
         ndfi_series = ndfidata[:, jj, ii].flatten()
         doy_series = doydata[:, jj, ii].flatten()
         lst_series = lstdata[:, jj, ii].flatten()
-        #rice1 = PhenoRice(evidata, ndfidata, doydata, lstdata, params)
         rice = PhenoRice(evi_series, ndfi_series, doy_series, lst_series, params)
         
         phenorice_output[ii,jj,:] = rice
