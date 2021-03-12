@@ -18,13 +18,6 @@ import os
 # Read the data, DEM and Slope data exclude those areas which are unlikely to have rice
 demfile = '/media/gdrive/G-Drive/SRTM_DEM_sinusoidal/SRTM_DEM_Mosaicked_sinusoidal_clipped_resampled.tif';
 slopefile ='/media/gdrive/G-Drive/SRTM_DEM_sinusoidal/SRTM_DEM_Mosaicked_sinusoidal_clipped_resampled_slope.tif';
-'''
-#The example is for the year 2018 in the area of Nepal
-lstfile ='/media/gdrive/G-Drive/MATLAB_files/modis_EVIdata_20190520/PhenoRice_input_ncfiles/1.MOD_11A2_LST_250m_2018_20190626.nc'
-ndfifile ='/media/ddrive/PhenoRice_data/MODIS_13Q1_2018_NDFI_20200612.nc';
-evifile = '/media/gdrive/G-Drive/MATLAB_files/modis_EVIdata_20190520/PhenoRice_input_ncfiles/4.MODIS_13Q1_EVI_filled_2018_20200616.nc'
-doyfile = '/media/ddrive/PhenoRice_data/MODIS_13Q1_2018_250m_16_days_composite_day_of_the_year_20190709.nc'
-bluefile = '/media/ddrive/PhenoRice_data/MODIS_13Q1_2018_250m_16_days_blue_reflectance_20190709.nc'
 
 #%%
 
@@ -37,6 +30,13 @@ ds = None
 ds = gdal.Open(demfile)
 slopedata = ds.GetRasterBand(1).ReadAsArray()
 ds = None
+'''
+#The example is for the year 2018 in the area of Nepal
+lstfile ='/media/gdrive/G-Drive/MATLAB_files/modis_EVIdata_20190520/PhenoRice_input_ncfiles/1.MOD_11A2_LST_250m_2018_20190626.nc'
+ndfifile ='/media/ddrive/PhenoRice_data/MODIS_13Q1_2018_NDFI_20200612.nc';
+evifile = '/media/gdrive/G-Drive/MATLAB_files/modis_EVIdata_20190520/PhenoRice_input_ncfiles/4.MODIS_13Q1_EVI_filled_2018_20200616.nc'
+doyfile = '/media/ddrive/PhenoRice_data/MODIS_13Q1_2018_250m_16_days_composite_day_of_the_year_20190709.nc'
+bluefile = '/media/ddrive/PhenoRice_data/MODIS_13Q1_2018_250m_16_days_blue_reflectance_20190709.nc'
 
 ds = Dataset(evifile)
 evidata = ds.variables['EVI_filled2'][:]
