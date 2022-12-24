@@ -2,6 +2,8 @@
 """
 Created on Fri Sep 18 21:00:57 2020
 # This script aims at converting the PhenoRice program from R to Python
+# Modified from the script available at https://github.com/cropmodels/phenorice/blob/master/R/phenoRice.R
+# Used the actual DOY instead of assumed date for 8-day composites of MODIS for flodding period definition
 # It uses gap filled LST and EVI 
 @author: Nirajan Luintel
 """
