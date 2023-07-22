@@ -83,21 +83,6 @@ print(np.max(doydata.flatten()))
 zz, yy, xx = doydata.shape
 
 #%%
-#Define a function to calculate the number of repetition of increasing and decreasing EVI
-# function defined based on https://stackoverflow.com/a/24343375
-def consecutive_count(boolean_series, TF_option = True):
-    condition = np.array(boolean_series)
-    n_repeat = np.diff(np.where (np.concatenate(([condition[0]],
-                                                  condition[:-1] != condition[1:],
-                                                  [TF_option])))[0])[::2]
-    if len(n_repeat) >0:
-        max_repeat = np.max(n_repeat)
-    else:
-        max_repeat = 0
-    
-    return max_repeat
-
-#%%
 # define the parameters to be used in PhenoRice as a dictionary so that it can be used later
 params = {'dem_threshold' : 3000,
     'slope_threshold' : 30,
@@ -118,6 +103,20 @@ params = {'dem_threshold' : 3000,
     'season_length_min' : 80,
     'season_length_max' : 200}
 
+#%%
+#Define a function to calculate the number of repetition of increasing and decreasing EVI
+# function defined based on https://stackoverflow.com/a/24343375
+def consecutive_count(boolean_series, TF_option = True):
+    condition = np.array(boolean_series)
+    n_repeat = np.diff(np.where (np.concatenate(([condition[0]],
+                                                  condition[:-1] != condition[1:],
+                                                  [TF_option])))[0])[::2]
+    if len(n_repeat) >0:
+        max_repeat = np.max(n_repeat)
+    else:
+        max_repeat = 0
+    
+    return max_repeat
 
 #%%
 # Functions for PhenoRice methods
