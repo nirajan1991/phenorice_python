@@ -1,111 +1,30 @@
 # -*- codin/media\gdrive utf-8 -*-
 """
 Created on Fri Sep 18 21:00:57 2020
-# This script aims at providing the python version for PhenoRice algorithm 
-# It is based on the MATLAB script written for my MS thesis and the R script for Phenorice available at 
-# https://github.com/cropmodels/phenorice/blob/master/R/phenoRice.R
-# Used the actual DOY instead of assumed date for 8-day composites of MODIS as in the case of original PhenoRice algorithm
-# It uses gap filled LST and EVI 
-@author: Nirajan Luintel
+# This script aims at converting the PhenoRice program from R to Python
+#Tried hard to define sign function used by R script and found later that numpy.sign exists
+@author: Nirajan
 """
 #%%
 # import the required libraries
 import numpy as np
+#import pandas as pd
+#import matplotlib.pyplot as plt
 from netCDF4 import Dataset
 from osgeo import gdal
 import glob
 import os
 
 #%%
-'''
-# Read the data, DEM and Slope data exclude those areas which are unlikely to have rice
-demfile = '/media/gdrive/G-Drive/SRTM_DEM_sinusoidal/SRTM_DEM_Mosaicked_sinusoidal_clipped_resampled.tif';
-slopefile ='/media/gdrive/G-Drive/SRTM_DEM_sinusoidal/SRTM_DEM_Mosaicked_sinusoidal_clipped_resampled_slope.tif';
+#define simple functions to be used later in other specific functions
 
-#%%
+#func 1
+#sign = lambda x: x and (1, -1)[x<0] 
+# sign function was discarded as counting consecutive items was preferred
 
-ds = gdal.Open(demfile)
-demdata = ds.GetRasterBand(1).ReadAsArray()
-proj = ds.GetProjection()
-geoTransform = ds.GetGeoTransform()
-ds = None
-
-ds = gdal.Open(demfile)
-slopedata = ds.GetRasterBand(1).ReadAsArray()
-ds = None
-'''
-#The example is for the year 2018 in the area of Nepal
-lstfile ='/media/gdrive/G-Drive/MATLAB_files/modis_EVIdata_20190520/PhenoRice_input_ncfiles/1.MOD_11A2_LST_250m_2018_20190626.nc'
-ndfifile ='/media/ddrive/PhenoRice_data/MODIS_13Q1_2018_NDFI_20200612.nc';
-evifile = '/media/gdrive/G-Drive/MATLAB_files/modis_EVIdata_20190520/PhenoRice_input_ncfiles/4.MODIS_13Q1_EVI_filled_2018_20200616.nc'
-doyfile = '/media/ddrive/PhenoRice_data/MODIS_13Q1_2018_250m_16_days_composite_day_of_the_year_20190709.nc'
-bluefile = '/media/ddrive/PhenoRice_data/MODIS_13Q1_2018_250m_16_days_blue_reflectance_20190709.nc'
-
-ds = Dataset(evifile)
-evidata = ds.variables['EVI_filled2'][:]
-ds.close()
-ds = None
-
-ds = Dataset(ndfifile)
-ndfidata = ds.variables['NDFI'][:]
-ds.close()
-ds = None
-
-ds = Dataset(lstfile)
-lstdata = ds.variables['LST_Day_250m'][:]
-ds.close()
-ds = None
-
-ds = Dataset(doyfile)
-doydata = ds.variables['250m_16_days_composite_day_of_the_year'][:]
-ds.close()
-ds = None
-
-ds = Dataset(bluefile)
-bluedata = ds.variables['250m_16_days_blue_reflectance'][:]
-ds.close()
-ds = None
-
-#%%
-
-#filter out cloudy data
-blue_high = bluedata >= (0.2 * 10000)
-ndfidata[blue_high] = -32767
-blue_high = None
-bluedata = None
-#%%
-
-#change doy to make it continuous
-doy_end = doydata[29:,:,:]
-doy_end[doy_end<90] = doy_end[doy_end<90] + 365
-print(np.max(doydata.flatten()))
-#read the shape
-zz, yy, xx = doydata.shape
-
-#%%
-# define the parameters to be used in PhenoRice as a dictionary so that it can be used later
-params = {'dem_threshold' : 3000,
-    'slope_threshold' : 30,
-    'evi_evergreen_threshold' : 0.5,
-    'flowering_stage' : np.array(range(196,335)), #
-    'plantation_stage' : np.array(range(121,244)), #
-    'evi_bare_threshold' : 0.4,
-    'senescence_decrease_threshold' : 0.5,
-    'senescence_length' : 80,
-    'evi_minima_threshold' : 0.3,
-    'lst_minima_threshold' : 15,
-    'window_flooding_days' : 25,
-    'ndfi_flood_threshold' : 0,
-    'window_inc_dec' : 6,
-    'delta_time_min' : 40,
-    'delta_time_max' : 160,
-    'season_index' : np.array(range(12,39)),
-    'season_length_min' : 80,
-    'season_length_max' : 200}
-
-#%%
-#Define a function to calculate the number of repetition of increasing and decreasing EVI
+#func 2
 # function defined based on https://stackoverflow.com/a/24343375
+#Define a function to calculate the number of repetition of increasing and decreasing EVI
 def consecutive_count(boolean_series, TF_option = True):
     condition = np.array(boolean_series)
     n_repeat = np.diff(np.where (np.concatenate(([condition[0]],
@@ -118,8 +37,17 @@ def consecutive_count(boolean_series, TF_option = True):
     
     return max_repeat
 
+'''
+# test function
+a=np.array([True,True,True,False,False,False,True,True,False,False,True,False])
+max_repeat = consecutive_count(a)
+print(max_repeat)
+
+b = np.where(np.diff((np.diff(evidata)>0)))
+'''  
 #%%
 # Functions for PhenoRice methods
+
 # check an increase (decrease) in EVI before (after) the EVI maximum
 # at least 3 increasing (decreasing) observations within certain consecutive periods around maximum EVI points
 
@@ -136,7 +64,9 @@ def checkChangeRate_max (maxevidate, evi, seq_interval):
         maxevidate = maxevidate
     else:
         maxevidate = 0
+    #end if
     return maxevidate
+#end def
 #%%
 # check an increase (decrease) in EVI before (after) the EVI maximum
 # at least 3 increasing (decreasing) observations within certain consecutive periods around maximum EVI points
@@ -152,8 +82,10 @@ def checkChangeRate_min (mind, evi, seq_interval):
         mind = mind
     else:
         mind= 0
-    
+    #end if
+
     return mind
+#end def
 #%%
 # Check for NDFI signal >= minndfi around minimum EVI for a period (by setting winfl) before and after min
 
@@ -167,7 +99,9 @@ def ndfiCheck (mind, doy, ndfi, winfl, ndfifl):
         mind = mind
     else:
         mind = 0
+    #end if
     return mind
+#end def
 
 #%%
 # Check the period between min EVI date and max EVI date
@@ -200,15 +134,21 @@ def checkEVIAftermax (dates, doy, evi, windecr, decr):
         
         enddate_idx = np.max(np.nonzero(doy <= enddate))
         mindate_idx = dates[i,0]
+        #mindate = doy[mindate_idx]
         enddate = np.min([enddate_idx, len(doy)])
+        #dtrng = maxdate_idx:enddate_idx
+        #mv = min(evi[dtrng])
         mv = np.min([evi[maxdate_idx:enddate_idx]])
         test = evi[maxdate_idx] - decr * (evi[maxdate_idx] - evi[mindate_idx])
         good[i] = mv <= test
+    #end for
     dates_good = dates [good,:]
     return dates_good
 
 #%%
 # the PhenoRice main function
+# from numba import njit
+# @njit
 def PhenoRice(evi, ndfi, doy, lst, params):
     rice = np.array([0, 0, 0])
     
@@ -225,12 +165,14 @@ def PhenoRice(evi, ndfi, doy, lst, params):
 
         
         if len(max_evi_idxs) > 0: #if 2
+            #max_evi_idxs = np.asarray(map(checkChangeRate_max(max_evi_idxs, evi, params['window_inc_dec']),max_evi_idxs))
             max_evi_idxs = np.asarray([checkChangeRate_max(i, evi, params['window_inc_dec']) for i in max_evi_idxs])
             max_evi_idxs = max_evi_idxs[max_evi_idxs != 0]
             #filter method can  be used but logical indexing is faster in numpy
             
             if len(max_evi_idxs) > 0: # if 3
                 max_evi_idxs = max_evi_idxs[np.argmax(evi[max_evi_idxs])]
+                #max_evi_date = doy[max_evi_idxs]
                 
                 #If condition for maxima is satisfied then check for minimum
                 min_evi_doy = params['plantation_stage']
@@ -273,44 +215,153 @@ def PhenoRice(evi, ndfi, doy, lst, params):
                                 rice[1] = flowering_date
                                 rice[2] = eos_date
                                 
-                            
+                            #end if 7
+                        #end if 6
+                    #end if 5
+                #end if 4
+            #end if 3
+        #end if 2
+    #end if 1
     return rice
+#end def
 #%%
-#initialize the output 
-phenorice_output = np.zeros((xx, yy, 3),dtype = np.int16)
+#rice1 = PhenoRice(evidata, ndfidata, doydata, lstdata, params)
 #%%
-from tqdm import tqdm #for profiling
-import datetime
-starttime = datetime.datetime.now()
+if __name__ == '__main__':
 
-for ii in tqdm(range(xx)):
-    for jj in range(yy):
-        evi_series = evidata[:, jj, ii].flatten()
-        ndfi_series = ndfidata[:, jj, ii].flatten()
-        doy_series = doydata[:, jj, ii].flatten()
-        lst_series = lstdata[:, jj, ii].flatten()
-        rice = PhenoRice(evi_series, ndfi_series, doy_series, lst_series, params)
-        
-        phenorice_output[ii,jj,:] = rice
+    demfile = '/media/gdrive/G-Drive/SRTM_DEM_sinusoidal/SRTM_DEM_Mosaicked_sinusoidal_clipped_resampled.tif';
+    slopefile ='/media/gdrive/G-Drive/SRTM_DEM_sinusoidal/SRTM_DEM_Mosaicked_sinusoidal_clipped_resampled_slope.tif';
 
-stoptime = datetime.datetime.now()
-timetaken = stoptime - starttime
-print('timetaken: ', timetaken.seconds/60, 'minutes')
-#%%
-out_vars = ['sos_date', 'pos_date', 'eos_date']
-outprefix = 'PhenoRice_2018_'
-driver = gdal.GetDriverByName("GTiff")
+    lstfile ='/media/gdrive/G-Drive/MATLAB_files/modis_EVIdata_20190520/PhenoRice_input_ncfiles/1.MOD_11A2_LST_250m_2018_20190626.nc'
+    ndfifile ='/media/ddrive/PhenoRice_data/MODIS_13Q1_2018_NDFI_20200612.nc';
+    evifile = '/media/gdrive/G-Drive/MATLAB_files/modis_EVIdata_20190520/PhenoRice_input_ncfiles/4.MODIS_13Q1_EVI_filled_2018_20200616.nc'
+    doyfile = '/media/ddrive/PhenoRice_data/MODIS_13Q1_2018_250m_16_days_composite_day_of_the_year_20190709.nc'
+    bluefile = '/media/ddrive/PhenoRice_data/MODIS_13Q1_2018_250m_16_days_blue_reflectance_20190709.nc'
 
-for nb in range(3):
-    data = phenorice_output[:,:,nb]
-    outfile = outprefix + out_vars[nb] + '.tif'
-    dataset = driver.Create(outfile, yy, xx, 1, gdal.GDT_Int16)
-    dataset.SetGeoTransform(geoTransform)
-    dataset.SetProjection(proj)
+    #%%
+    # define the parameters to be used in PhenoRice as a dictionary so that it can be used later
+    params = {'dem_threshold' : 3000,
+        'slope_threshold' : 30,
+        'evi_evergreen_threshold' : 0.5,
+        'flowering_stage' : np.array(range(196,335)), #
+        'plantation_stage' : np.array(range(121,244)), #
+        'evi_bare_threshold' : 0.4,
+        'senescence_decrease_threshold' : 0.5,
+        'senescence_length' : 80,
+        'evi_minima_threshold' : 0.3,
+        'lst_minima_threshold' : 15,
+        'window_flooding_days' : 25,
+        'ndfi_flood_threshold' : 0,
+        'window_inc_dec' : 6,
+        'delta_time_min' : 40,
+        'delta_time_max' : 160,
+        'season_index' : np.array(range(12,39)),
+        'season_length_min' : 80,
+        'season_length_max' : 200}
 
-    dataset.GetRasterBand(1).WriteArray(data)
-    #data = None
 
-    dataset.FlushCache()
-    dataset = None
+    ds = gdal.Open(demfile)
+    demdata = ds.GetRasterBand(1).ReadAsArray()
+    proj = ds.GetProjection()
+    geoTransform = ds.GetGeoTransform()
+    ds = None
 
+    ds = gdal.Open(demfile)
+    slopedata = ds.GetRasterBand(1).ReadAsArray()
+    ds = None
+
+    ds = Dataset(evifile)
+    evidata = ds.variables['EVI_filled2'][:]
+    #evidata = np.asarray(evidata)
+    ds.close()
+    ds = None
+
+    ds = Dataset(ndfifile)
+    ndfidata = ds.variables['NDFI'][:]
+    ds.close()
+    ds = None
+
+    ds = Dataset(lstfile)
+    lstdata = ds.variables['LST_Day_250m'][:]
+    ds.close()
+    ds = None
+
+    ds = Dataset(doyfile)
+    doydata = ds.variables['250m_16_days_composite_day_of_the_year'][:]
+    ds.close()
+    ds = None
+
+    ds = Dataset(bluefile)
+    bluedata = ds.variables['250m_16_days_blue_reflectance'][:]
+    ds.close()
+    ds = None
+
+    #%%
+
+    #filter out cloudy data
+    blue_high = bluedata >= (0.2 * 10000)
+    ndfidata[blue_high] = -32767
+    blue_high = None
+    bluedata = None
+    #%%
+
+    #change doy to make it continuous
+    doy_end = doydata[29:,:,:]
+    doy_end[doy_end<90] = doy_end[doy_end<90] + 365
+    #doydata = np.concatenate((doydata(:,:,0:29), doy_end), axis = 2)
+    print(np.max(doydata.flatten()))
+    #read the shape
+    zz, yy, xx = doydata.shape
+
+    #%%
+    '''
+    # read sample_data which was predicted as rice pixel as testing data
+    sample_file=r'/media\gdrive\G-Drive\MATLAB_files\modis_EVIdata_20190520\Scripts\sample_data_2018_1951_4725.csv'
+    df = pd.read_csv(sample_file)
+
+    evidata = df['EVI'].values/10000
+    ndfidata = df['NDFI'].values/10000
+    lstdata = df['LST'].values*0.02 - 273
+    doydata = df['DOY'].values
+
+    plt.plot(evidata)
+    '''
+    #initialize the output 
+    phenorice_output = np.zeros((xx, yy, 3),dtype = np.int16)
+    #%%
+    from tqdm import tqdm #for profiling
+    import datetime
+    starttime = datetime.datetime.now()
+
+    for ii in tqdm(range(xx)):
+        for jj in range(yy):
+            evi_series = evidata[:, jj, ii].flatten()
+            ndfi_series = ndfidata[:, jj, ii].flatten()
+            doy_series = doydata[:, jj, ii].flatten()
+            lst_series = lstdata[:, jj, ii].flatten()
+            #rice1 = PhenoRice(evidata, ndfidata, doydata, lstdata, params)
+            rice = PhenoRice(evi_series, ndfi_series, doy_series, lst_series, params)
+            
+            phenorice_output[ii,jj,:] = rice
+        #end jj
+    #end ii
+    stoptime = datetime.datetime.now()
+    timetaken = stoptime - starttime
+    print('timetaken: ', timetaken.seconds/60, 'minutes')
+    #%%
+    out_vars = ['sos_date', 'pos_date', 'eos_date']
+    outprefix = 'PhenoRice_2018_'
+    driver = gdal.GetDriverByName("GTiff")
+
+    for nb in range(3):
+        data = phenorice_output[:,:,nb]
+        outfile = outprefix + out_vars[nb] + '.tif'
+        dataset = driver.Create(outfile, yy, xx, 1, gdal.GDT_Int16)
+        dataset.SetGeoTransform(geoTransform)
+        dataset.SetProjection(proj)
+
+        dataset.GetRasterBand(1).WriteArray(data)
+        #data = None
+
+        dataset.FlushCache()
+        dataset = None
